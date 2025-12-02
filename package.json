@@ -1,0 +1,45 @@
+{
+  "name": "halolight-api-bun",
+  "version": "1.0.0",
+  "description": "HaloLight Backend API - Bun/Hono/Drizzle implementation",
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "build": "bun build src/index.ts --outdir=dist --target=bun",
+    "start": "bun dist/index.js",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "bun src/db/migrate.ts",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "bun src/db/seed.ts",
+    "lint": "eslint 'src/**/*.{ts,js}'",
+    "format": "prettier --write 'src/**/*.{ts,js}'",
+    "test": "bun test"
+  },
+  "keywords": [
+    "halolight",
+    "api",
+    "bun",
+    "hono",
+    "drizzle",
+    "typescript"
+  ],
+  "author": "HaloLight Team",
+  "license": "MIT",
+  "dependencies": {
+    "hono": "^4.6.15",
+    "drizzle-orm": "^0.36.4",
+    "postgres": "^3.4.5",
+    "zod": "^3.24.1",
+    "@hono/zod-validator": "^0.4.1"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.1.14",
+    "drizzle-kit": "^0.30.2",
+    "typescript": "^5.9.3",
+    "@typescript-eslint/eslint-plugin": "^8.21.0",
+    "@typescript-eslint/parser": "^8.21.0",
+    "eslint": "^9.18.0",
+    "prettier": "^3.4.2"
+  }
+}
