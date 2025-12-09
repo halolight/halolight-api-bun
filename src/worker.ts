@@ -3,8 +3,11 @@ import { corsMiddleware } from './middleware/cors';
 import { errorHandler, notFoundHandler } from './middleware/error';
 import { loggerMiddleware } from './middleware/logger';
 import { apiRoutes } from './routes';
-import { swaggerRoutes } from './swagger';
+import { createDocsRedirect, createSwaggerRoutes } from './swagger';
 import { getHomePage } from './pages/home';
+import { getWorkerDb } from './db/cloudflare';
+import { setDb } from './db';
+import { validateWorkerEnv } from './utils/env.worker';
 
 /**
  * Cloudflare Workers entry point
@@ -19,6 +22,7 @@ interface Env {
   API_PREFIX: string;
   SWAGGER_PATH: string;
   SWAGGER_ENABLED: string;
+  CORS_ORIGIN?: string;
 }
 
 /**
@@ -26,11 +30,50 @@ interface Env {
  */
 const app = new Hono<{ Bindings: Env }>();
 
+let cachedEnv: Env | null = null;
+let routesBound = false;
+
 /**
  * Global middleware
  */
+app.use('*', async (c, next) => {
+  if (!cachedEnv) {
+    cachedEnv = validateWorkerEnv(c.env as unknown as Record<string, unknown>);
+  }
+  const env = cachedEnv;
+
+  // Bind per-runtime DB into shared service import
+  setDb(getWorkerDb(env));
+
+  // Attach parsed env to context for downstream use
+  c.set('env', env);
+
+  // Bind routes once using runtime env
+  if (!routesBound) {
+    const apiPrefix = env.API_PREFIX || '/api';
+    const swaggerPath = env.SWAGGER_PATH || '/swagger';
+    const enableSwagger = env.SWAGGER_ENABLED !== 'false';
+
+    if (enableSwagger) {
+      app.route(swaggerPath, createSwaggerRoutes(swaggerPath));
+      app.get('/docs', createDocsRedirect(swaggerPath));
+    }
+
+    app.route(apiPrefix, apiRoutes);
+    routesBound = true;
+  }
+
+  return next();
+});
+
 app.use('*', loggerMiddleware);
-app.use('*', corsMiddleware());
+app.use('*', (c, next) => {
+  const env = c.get('env') as Env;
+  const origins = env.CORS_ORIGIN.split(',')
+    .map((v) => v.trim())
+    .filter(Boolean);
+  return corsMiddleware(origins)(c, next);
+});
 app.use('*', errorHandler);
 
 /**
@@ -44,8 +87,9 @@ app.get('/', (c) => {
  * JSON API info endpoint
  */
 app.get('/info', (c) => {
-  const apiPrefix = c.env?.API_PREFIX || '/api';
-  const swaggerPath = c.env?.SWAGGER_PATH || '/swagger';
+  const env = c.get('env') as Env;
+  const apiPrefix = env.API_PREFIX || '/api';
+  const swaggerPath = env.SWAGGER_PATH || '/swagger';
 
   return c.json({
     name: 'HaloLight API',
@@ -64,16 +108,7 @@ app.get('/info', (c) => {
   });
 });
 
-/**
- * Mount Swagger UI
- */
-app.route('/swagger', swaggerRoutes);
-app.get('/docs', (c) => c.redirect('/swagger'));
-
-/**
- * Mount API routes
- */
-app.route('/api', apiRoutes);
+// Routes are bound lazily in the first middleware once env is validated.
 
 /**
  * 404 handler

@@ -37,6 +37,7 @@
   "author": "HaloLight Team",
   "license": "MIT",
   "dependencies": {
+    "@neondatabase/serverless": "^0.10.4",
     "@hono/swagger-ui": "^0.5.2",
     "@hono/zod-validator": "^0.4.1",
     "bcryptjs": "^3.0.3",

@@ -1,31 +1,52 @@
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
+import { neon } from '@neondatabase/serverless';
+import { drizzle, type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import * as schema from './schema';
 
-/**
- * Database connection configuration
- */
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/halolight';
+type DbInstance = NeonHttpDatabase<typeof schema>;
+
+let db!: DbInstance;
+let clientInitialized = false;
 
 /**
- * Create PostgreSQL client
+ * Initialize DB for Bun/Vercel environments (HTTP driver for serverless friendliness).
+ * Falls back to a localhost connection string for local dev.
  */
-export const client = postgres(connectionString, {
-  max: 10, // Maximum number of connections
-  idle_timeout: 20, // Close idle connections after 20 seconds
-  connect_timeout: 10, // Connection timeout in seconds
-});
-
-/**
- * Create Drizzle ORM instance
- */
-export const db = drizzle(client, { schema });
-
-/**
- * Graceful shutdown
- */
-export async function closeDatabase() {
-  await client.end();
+function initDb() {
+  if (db) return db;
+  const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/halolight';
+  const client = neon(connectionString);
+  db = drizzle(client, { schema });
+  clientInitialized = true;
+  return db;
 }
 
+/**
+ * Explicitly set DB instance (used by Cloudflare Workers to inject per-runtime client).
+ */
+export function setDb(instance: DbInstance) {
+  db = instance;
+}
+
+/**
+ * Get the active DB instance. Initializes lazily for Bun/Vercel.
+ */
+export function getDb(): DbInstance {
+  if (db) return db;
+  return initDb();
+}
+
+// Auto-initialize when DATABASE_URL is present (Bun/Node environments).
+if (typeof process !== 'undefined' && process.env?.DATABASE_URL) {
+  initDb();
+}
+
+/**
+ * Graceful shutdown stub (Neon HTTP driver does not maintain TCP pool).
+ */
+export async function closeDatabase() {
+  if (!clientInitialized) return;
+  // No-op for neon-http; kept for API parity.
+}
+
+export { db };
 export * from './schema';

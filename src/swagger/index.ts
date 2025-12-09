@@ -4,31 +4,33 @@ import { generateOpenApiSpec } from './openapi';
 import { env } from '../utils/env';
 
 /**
- * Swagger routes
+ * Factory to build Swagger routes with a configurable base path.
  */
-export const swaggerRoutes = new Hono();
+export function createSwaggerRoutes(swaggerPath: string) {
+  const routes = new Hono();
 
-/**
- * Serve OpenAPI JSON spec (dynamically generated)
- */
-swaggerRoutes.get('/openapi.json', (c) => {
-  const spec = generateOpenApiSpec();
-  return c.json(spec);
-});
+  routes.get('/openapi.json', (c) => {
+    const spec = generateOpenApiSpec();
+    return c.json(spec);
+  });
 
-/**
- * Serve Swagger UI with custom configuration
- */
-swaggerRoutes.get(
-  '/',
-  swaggerUI({
-    url: `${env.SWAGGER_PATH}/openapi.json`,
-    persistAuthorization: true,
-  }),
-);
+  routes.get(
+    '/',
+    swaggerUI({
+      url: `${swaggerPath}/openapi.json`,
+      persistAuthorization: true,
+    }),
+  );
 
-/**
- * Redirect /docs to /swagger for compatibility
- */
-export const docsRedirect = new Hono();
-docsRedirect.get('/', (c) => c.redirect(env.SWAGGER_PATH));
+  return routes;
+}
+
+export function createDocsRedirect(swaggerPath: string) {
+  const docs = new Hono();
+  docs.get('/', (c) => c.redirect(swaggerPath));
+  return docs;
+}
+
+// Default instances for Bun/Vercel entrypoints
+export const swaggerRoutes = createSwaggerRoutes(env.SWAGGER_PATH);
+export const docsRedirect = createDocsRedirect(env.SWAGGER_PATH);

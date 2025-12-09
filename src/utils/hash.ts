@@ -1,7 +1,7 @@
 /**
  * Declare Bun global for non-Bun environments (Vercel/Cloudflare)
  */
-declare const Bun: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+declare const Bun: any;
 
 /**
  * Check if running in Bun environment

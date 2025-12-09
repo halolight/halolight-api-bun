@@ -4,8 +4,11 @@ import { parseCorsOrigins } from '../utils/env';
 /**
  * CORS middleware configuration
  */
-export const corsMiddleware = () => {
-  const origins = parseCorsOrigins();
+export const corsMiddleware = (originsInput?: string | string[]) => {
+  const origins =
+    typeof originsInput === 'string'
+      ? originsInput.split(',').map((v) => v.trim())
+      : originsInput || parseCorsOrigins();
 
   return cors({
     origin: origins,
