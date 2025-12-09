@@ -5,10 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "bun --watch src/index.ts",
+    "dev:cf": "wrangler dev",
     "build": "bun build src/index.ts --outdir=dist --target=bun",
     "build:vercel": "esbuild api/_entry.ts --bundle --platform=node --target=node18 --format=esm --outfile=api/index.js --external:postgres",
     "start": "bun dist/index.js",
     "start:prod": "NODE_ENV=production bun dist/index.js",
+    "deploy:cf": "wrangler deploy",
+    "deploy:cf:prod": "wrangler deploy --env production",
+    "deploy:vercel": "pnpm run build:vercel && vercel --prod",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "bun src/db/migrate.ts",
     "db:push": "drizzle-kit push",
@@ -48,6 +52,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241205.0",
     "@eslint/js": "^9.18.0",
     "@types/bcryptjs": "^3.0.0",
     "@types/bun": "^1.1.14",
@@ -60,6 +65,7 @@
     "globals": "^15.14.0",
     "prettier": "^3.4.2",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.21.0"
+    "typescript-eslint": "^8.21.0",
+    "wrangler": "^3.99.0"
   }
 }

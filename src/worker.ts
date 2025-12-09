@@ -28,7 +28,12 @@ interface Env {
 /**
  * Create Hono application for Cloudflare Workers
  */
-const app = new Hono<{ Bindings: Env }>();
+const app = new Hono<{
+  Bindings: Env;
+  Variables: {
+    env: Env;
+  };
+}>();
 
 let cachedEnv: Env | null = null;
 let routesBound = false;
@@ -55,11 +60,14 @@ app.use('*', async (c, next) => {
     const enableSwagger = env.SWAGGER_ENABLED !== 'false';
 
     if (enableSwagger) {
-      app.route(swaggerPath, createSwaggerRoutes(swaggerPath));
-      app.get('/docs', createDocsRedirect(swaggerPath));
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      app.route(swaggerPath, createSwaggerRoutes(swaggerPath) as any);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      app.route('/docs', createDocsRedirect(swaggerPath) as any);
     }
 
-    app.route(apiPrefix, apiRoutes);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    app.route(apiPrefix, apiRoutes as any);
     routesBound = true;
   }
 
@@ -68,10 +76,12 @@ app.use('*', async (c, next) => {
 
 app.use('*', loggerMiddleware);
 app.use('*', (c, next) => {
-  const env = c.get('env') as Env;
-  const origins = env.CORS_ORIGIN.split(',')
+  const env = c.get('env');
+  const origins = (env.CORS_ORIGIN || 'http://localhost:3000')
+    .split(',')
     .map((v) => v.trim())
     .filter(Boolean);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   return corsMiddleware(origins)(c, next);
 });
 app.use('*', errorHandler);
@@ -87,7 +97,7 @@ app.get('/', (c) => {
  * JSON API info endpoint
  */
 app.get('/info', (c) => {
-  const env = c.get('env') as Env;
+  const env = c.get('env');
   const apiPrefix = env.API_PREFIX || '/api';
   const swaggerPath = env.SWAGGER_PATH || '/swagger';
 

@@ -1,17 +1,47 @@
-name = "halolight-api"
+# Cloudflare Workers 配置
+# 文档: https://developers.cloudflare.com/workers/wrangler/configuration/
+
+name = "halolight-api-bun"
 main = "src/worker.ts"
-compatibility_date = "2024-12-01"
+compatibility_date = "2024-01-01"
 compatibility_flags = ["nodejs_compat"]
 
+# 非敏感环境变量
 [vars]
 API_PREFIX = "/api"
 SWAGGER_PATH = "/swagger"
 SWAGGER_ENABLED = "true"
 
-# Secrets (set via wrangler secret put):
-# - DATABASE_URL
-# - JWT_SECRET
-# - JWT_REFRESH_SECRET
+# ============================================
+# 敏感变量说明 (使用 wrangler secret 配置)
+# ============================================
+# 以下变量需要通过 wrangler secret put 命令配置，不要写在此文件中：
+#
+# DATABASE_URL      - Neon/PostgreSQL 数据库连接字符串
+#                     示例: postgresql://user:pass@ep-xxx.neon.tech/db?sslmode=require
+#
+# JWT_SECRET        - JWT 签名密钥 (≥32字符)
+#
+# JWT_REFRESH_SECRET - RefreshToken 密钥 (可选，≥32字符)
+#
+# CORS_ORIGIN       - 允许的前端域名 (逗号分隔)
+#                     示例: https://halolight.h7ml.cn,https://localhost:3000
+#
+# 配置命令:
+#   wrangler secret put DATABASE_URL
+#   wrangler secret put JWT_SECRET
+#   wrangler secret put JWT_REFRESH_SECRET
+#   wrangler secret put CORS_ORIGIN
+#
+# 生产环境配置:
+#   wrangler secret put DATABASE_URL --env production
+#   wrangler secret put JWT_SECRET --env production
+#   ...
 
-[triggers]
-crons = []
+# ============================================
+# 开发配置
+# ============================================
+[dev]
+port = 8787
+local_protocol = "http"
+
